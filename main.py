@@ -16,24 +16,23 @@ def subir_imagenes():
         # Obtener todas las imágenes del formulario
         images = []
         for i in range(6):
-            print('images' + str(i+1))
             data = request.form.get('images' + str(i+1))
             if data:
                 data_parts = data.split(',')
                 base64_data = data_parts[1]
 
-        #         # Decodificar la imagen base64
+                # Decodificar la imagen base64
                 image_data = base64.b64decode(base64_data)
-        #         # Guardar la imagen en el servidor o realizar cualquier otro procesamiento necesario
+                # Guardar la imagen en el servidor o realizar cualquier otro procesamiento necesario
                 filename = os.path.join('img', f'images' + str(i+1)+ '.jpg')
                 with open(filename, 'wb') as f:
                     f.write(image_data)
-        #         # images.append(filename)
+                    # images.append(filename)
         
 
         return jsonify(principal()), 200
     except Exception as e:
-        return 'Error en el servidor', 500
+        return 'Error en el servidor , al subir las imagenes', 500
 
 
 if __name__ == '__main__':

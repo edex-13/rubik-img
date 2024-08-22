@@ -22,7 +22,7 @@ def recortar(img):
 
 def generar(img):
     image = recortar(img)
-    cv.waitKey(0)
+  
 
     height, width, channels = image.shape
 
@@ -32,6 +32,7 @@ def generar(img):
     widthToRect = 250 // 3  # En este caso, dividimos la imagen en un grid de 3x3
 
     COLORES = []
+
     for i in range(3):
         for j in range(3):
             #print("1")
@@ -75,7 +76,7 @@ def generar(img):
 
     for i in range(0, 300, 100):
         for j in range(0, 300, 100):
-            cv.rectangle(CUBO, (i, j), (i+100, j+100), COLORES[index], -1)
+            cv.rectangle(CUBO, (j, i), (j+100, i+100), COLORES[index], -1)
             index += 1
 
     rotated_image = cv.rotate(CUBO, cv.ROTATE_90_CLOCKWISE)
@@ -89,7 +90,7 @@ def generar(img):
 def recortar_img_cubo(imgs, name, name2):
     p = []
     # print("aaaaaaaaaaaaaaaaaaaaa")
-    small_size = 300//3
+    small_size = 250//3
     n = 0
 
     # Crea la carpeta de nuevo
@@ -99,11 +100,11 @@ def recortar_img_cubo(imgs, name, name2):
 
     for i_m in range(3):
         for j_m in range(3):
-            start_x = j_m * small_size
-            end_x = (j_m + 1) * small_size
+            start_x = j_m * small_size + 10
+            end_x = (j_m + 1) * small_size -10
 
-            start_y = i_m * small_size
-            end_y = (i_m + 1) * small_size
+            start_y = i_m * small_size +10
+            end_y = (i_m + 1) * small_size -10
             
 
             # Recorta el bloque de la imagen original
@@ -115,27 +116,76 @@ def recortar_img_cubo(imgs, name, name2):
     # Guarda y muestra las imágenes más pequeñas
     n = 0
     colores = []
-    print("********************************")
     f = 0
     for imgsa in small_images:
-        filename = f'img/predecir/img_{name2}_{n}.jpg'
+        filename = f'img/img_{name2}_{n}.jpg'
+        color = categorizar(imgsa , f"img_{name2}_{n}")
+        print(color)
         n += 1
-        color = categorizar(imgsa, f'img_{name2}_{n}')
         colores.append(color)
         # cv.imshow('Imagen', imgsa)
         # print("--")
 
         p.append([])
         cv.imwrite(filename, imgsa)
-    while len(colores) <= 9:
-        colores.append('nn')
     
-    print("********************************")
 
     return colores
 
-def categorizar():
-    pass
+def categorizar(img , name):
+    # Convertir la imagen a espacio de color HSV
+
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    # Calcular los valores promedio y la moda de H, S, V
+    h, s, v = cv2.split(hsv_img)
+    average_hue = np.mean(h)
+    average_saturation = np.mean(s)
+    average_value = np.mean(v)
+    
+    # Usar la moda para el tono puede ayudar con la consistencia
+    hue_mode = np.argmax(np.bincount(h.flatten()))
+
+    # Función para comprobar si un color es predominante
+    def is_color_dominant(hue_range):
+        return np.sum((h >= hue_range[0]) & (h <= hue_range[1])) / h.size > 0.7
+
+   
+    light_pixels = np.sum((s < 30) & (v > 90))
+    light_percentage = light_pixels / (h.size)
+
+    # Clasificación de color
+    if light_percentage > 0.5:  # Si más del 80% de los píxeles son considerados claros
+        color = "b"
+    elif average_saturation < 49 and average_value > 100:
+        color = "b"
+    elif is_color_dominant((0, 5)) or is_color_dominant((170, 180)):
+        color = "r"
+    elif is_color_dominant((6, 19)):
+        color = "n"
+    elif is_color_dominant((19, 53)):
+        color = "a"
+    elif is_color_dominant((53, 90)):
+        color = "v"
+    elif is_color_dominant((91, 130)):
+        color = "az"
+    else:
+        # Si no se ha clasificado, usar la moda del tono
+        if hue_mode < 5 or hue_mode > 170:
+            color = "r"
+        elif hue_mode < 19:
+            color = "n"
+        elif hue_mode < 53:
+            color = "a"
+        elif hue_mode < 90:
+            color = "v"
+        elif hue_mode < 130:
+            color = "az"
+        else:
+            color = "r"
+
+    return f"{color}"
+
 def principal():
     pp = []
     nombre_carpeta = 'predecir'
@@ -146,21 +196,30 @@ def principal():
     os.mkdir(nombre_carpeta)
 
     for i in range(6):
+
         filename = 'img/images' + str(i+1) + '.jpg'
         filename2 = 'img/cara' + str(i+1) + '.jpg'
+        generar(cv.imread(filename))
         cv.imwrite(filename2, generar(cv.imread(filename)))
 
-        img = cv.imread(f'img/cara{i+1}.jpg')
-        # s = recortar(img)
+        img = cv.imread(f'img/images{i+1}.jpg')
+        img = cv2.flip(img, 1)
+
+        img = recortar(img)
         # print("suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu")
-        pp.append(recortar_img_cubo(img, f'img/cara{i+1}.jpg', f'cara{i+1}'))
+        pp.append(recortar_img_cubo(img, f'img/images{i+1}.jpg', f'cara{i+1}'))
 
 
-    folder_path = 'predecir'  # Reemplaza con la ruta de tu carpeta
-    elements = os.listdir(folder_path)
-    count = len(elements)
+    # folder_path = 'predecir'  # Reemplaza con la ruta de tu carpeta
+    # elements = os.listdir(folder_path)
+    # count = len(elements)
 
-    print(f'La carpeta contiene {count} elementos.')
+    # print(f'La carpeta contiene {count} elementos.')
 
-
+    
+    # Convertimos de vuelta a una lista de Python
+ 
     return pp
+
+
+principal()
